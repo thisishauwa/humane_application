@@ -78,9 +78,9 @@ export async function analyzePost(post: string) {
   - Incorporate dataset insights: Favor conversational topics (e.g., "Conversations") and engaging phrasing.
   - Avoid introducing new cringe elements or unprofessional language.
   - **Prohibited Elements**:
-    - Do not use Markdown formatting (e.g., \*text\*, \*\*text\*\*, \`text\`).
-    - Do not use all-caps phrases (e.g., "HIT ME UP!", "AMAZING").
-    - Avoid informal or cliché phrases like "fired up," "pure human connection," "steal ideas," "blows my mind."
+    - No Markdown formatting (e.g., text, text, text)
+    - No all-caps phrases (e.g., "HIT ME UP!", "AMAZING")
+    - Avoid informal or cliché phrases like "fired up," "pure human connection," "steal ideas," "blows my mind"
     - Ensure rewrites sound polished and professional, suitable for LinkedIn's audience.
 - **Edge Cases**:
   - If the post is too short, expand slightly to convey the intent.
@@ -150,7 +150,7 @@ Analyze this post: ${post}`
   }
 }
 
-export async function rewritePost(post: string, tone: string, intensity: number) {
+export async function rewritePost(post: string, tone: string, intensity: number, maxLength: number = 1000) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
   const prompt = `You are the Humane AI Agent, designed to rewrite LinkedIn posts to make them authentic and engaging. Rewrite this post in a ${tone} tone with intensity ${intensity} (1=subtle, 10=moderately stylized).
@@ -158,13 +158,21 @@ export async function rewritePost(post: string, tone: string, intensity: number)
 Guidelines:
 - Remove corporate jargon, buzzwords, humblebrags, and clichés
 - Maintain the post's core message and intent
-- Keep the rewrite concise (80-120% of original length, max 500 characters)
+- Keep the rewrite concise (target 80-120% of original length, max ${maxLength} characters)
 - Sound polished and professional, suitable for LinkedIn's audience
 
+Intensity Guidelines:
+- Intensity 1: Minimal changes, just removing cringe elements
+- Intensity 5: Moderate rephrasing while maintaining core message
+- Intensity 10: Significant rephrasing to match tone, but still professional
+- Scale linearly between these points
+
 Prohibited Elements:
-- No Markdown formatting (e.g., \*text\*, \*\*text\*\*, \`text\`)
+- No Markdown formatting (e.g., text, text, text)
 - No all-caps phrases (e.g., "HIT ME UP!", "AMAZING")
 - Avoid informal or cliché phrases like "fired up," "pure human connection," "steal ideas," "blows my mind"
+- No emphasis or bold text
+- No explanatory text or labels before or after the rewrite
 
 Tone Guidelines:
 - Human + Relatable: Warm, conversational, authentic, like a professional colleague sharing an insight
@@ -173,12 +181,18 @@ Tone Guidelines:
 
 Post: ${post}
 
-Remember: Respond with ONLY the rewritten post, no additional text or explanations.`
+IMPORTANT: Respond with ONLY the rewritten post text. Do not include any explanatory text, labels, or formatting. The response should be the rewritten post and nothing else.`
 
   try {
     const result = await model.generateContent(prompt)
     const response = await result.response
     const text: string = response.text().trim()
+    
+    // Ensure the response is within the maxLength
+    if (text.length > maxLength) {
+      return text.substring(0, maxLength)
+    }
+    
     return text
   } catch (error) {
     console.error("Error rewriting post:", error)
