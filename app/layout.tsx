@@ -3,6 +3,7 @@ import "@/app/globals.css"
 import { GeistSans } from "geist/font/sans"
 import { ThemeProvider } from "@/components/theme-provider"
 import { britti } from "@/lib/fonts"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`font-britti`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

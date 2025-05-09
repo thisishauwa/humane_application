@@ -14,9 +14,11 @@ import { BillingSection } from "@/components/billing-section"
 import { HistorySection } from "@/components/history-section"
 import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export function HumanePlayground() {
   const router = useRouter()
+  const { toast } = useToast()
   const [post, setPost] = useState("")
   const [analyzed, setAnalyzed] = useState(false)
   const [score, setScore] = useState(0)
@@ -133,6 +135,10 @@ export function HumanePlayground() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(selectedRewrite || post)
+    toast({
+      title: "Copied to clipboard",
+      description: "Your text has been copied successfully",
+    })
   }
 
   const download = (format: "txt" | "md") => {
@@ -306,8 +312,8 @@ export function HumanePlayground() {
                 </div>
                 <Slider
                   value={[maxLength]}
-                  min={50}
-                  max={500}
+                  min={100}
+                  max={1500}
                   step={1}
                   onValueChange={(value) => setMaxLength(value[0])}
                 />

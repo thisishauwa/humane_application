@@ -1,42 +1,117 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Copy, Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+
+interface Rewrite {
+  id: string
+  original_post: string
+  rewritten_post: string
+  tone: string
+  cringe_score: number
+  created_at: string
+}
+
+interface Pagination {
+  total: number
+  page: number
+  limit: number
+  hasMore: boolean
+}
 
 export function HistorySection() {
-  // Mock history data
-  const historyItems = [
-    {
-      id: 1,
-      date: "May 9, 2025",
-      originalText:
-        "Excited to announce that I've joined Acme Corp as a Senior Innovation Strategist. Looking forward to leveraging my expertise to drive synergy and optimize business outcomes in this dynamic role.",
-      rewrittenText:
-        "I'm excited to share that I just joined the team at Acme Corp! Looking forward to learning from this amazing group of people and contributing to some cool projects.",
-      score: 78,
-      tone: "Human & Relatable",
-    },
-    {
-      id: 2,
-      date: "May 8, 2025",
-      originalText:
-        "Just completed a deep dive into our Q2 metrics. Thrilled to report that we've exceeded our KPIs by implementing best practices across all verticals. #ThoughtLeadership #BusinessSuccess",
-      rewrittenText:
-        "Just finished analyzing our Q2 results and I'm happy to share we beat our targets! The whole team worked hard to make this happen. What strategies are working for your team this quarter?",
-      score: 85,
-      tone: "Bold & Edgy",
-    },
-    {
-      id: 3,
-      date: "May 7, 2025",
-      originalText:
-        "Honored to be selected as a keynote speaker at the upcoming Global Innovation Summit. Will be sharing insights on paradigm shifts in the industry landscape.",
-      rewrittenText:
-        "Excited to speak at the Global Innovation Summit next month! I'll be sharing what I've learned about recent industry changes. Anyone else attending? Would love to connect!",
-      score: 62,
-      tone: "Playful & Witty",
-    },
-  ]
+  const [rewrites, setRewrites] = useState<Rewrite[]>([])
+  const [pagination, setPagination] = useState<Pagination>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    hasMore: false
+  })
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+
+  const fetchRewrites = async (page: number = 1) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/history?page=${page}&limit=${pagination.limit}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch rewrites")
+      }
+      const data = await response.json()
+      setRewrites(data.rewrites)
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error("Error fetching rewrites:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load rewrite history",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRewrites()
+  }, [])
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({
+        title: "Copied!",
+        description: "Text copied to clipboard",
+      })
+    } catch (error) {
+      console.error("Error copying text:", error)
+      toast({
+        title: "Error",
+        description: "Failed to copy text",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch("/api/history", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete rewrite")
+      }
+
+      // Remove the deleted rewrite from the state
+      setRewrites(rewrites.filter(rewrite => rewrite.id !== id))
+      toast({
+        title: "Success",
+        description: "Rewrite deleted successfully",
+      })
+    } catch (error) {
+      console.error("Error deleting rewrite:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete rewrite",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleLoadMore = () => {
+    if (pagination.hasMore) {
+      fetchRewrites(pagination.page + 1)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -46,45 +121,71 @@ export function HistorySection() {
       </div>
 
       <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-        {historyItems.map((item) => (
-          <div key={item.id} className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{item.date}</span>
-              <Badge variant="outline">{item.tone}</Badge>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs font-medium">Original:</p>
-              <p className="text-xs line-clamp-2">{item.originalText}</p>
-            </div>
-
-            <Separator className="my-1" />
-
-            <div className="space-y-1">
+        {loading && rewrites.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-4">Loading...</div>
+        ) : rewrites.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-4">No rewrites yet</div>
+        ) : (
+          rewrites.map((rewrite) => (
+            <div key={rewrite.id} className="rounded-md border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium">Rewritten:</p>
-                <Badge variant={item.score > 70 ? "destructive" : "success"} className="text-[10px] h-4">
-                  Score: {item.score}
-                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(rewrite.created_at).toLocaleDateString()}
+                </span>
+                <Badge variant="outline">{rewrite.tone}</Badge>
               </div>
-              <p className="text-xs line-clamp-2">{item.rewrittenText}</p>
-            </div>
 
-            <div className="flex justify-end gap-2 mt-1">
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-500">
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Original:</p>
+                <p className="text-xs line-clamp-2">{rewrite.original_post}</p>
+              </div>
+
+              <Separator className="my-1" />
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium">Rewritten:</p>
+                  <Badge variant={rewrite.cringe_score > 70 ? "destructive" : "default"} className="text-[10px] h-4">
+                    Score: {rewrite.cringe_score}
+                  </Badge>
+                </div>
+                <p className="text-xs line-clamp-2">{rewrite.rewritten_post}</p>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={() => handleCopy(rewrite.rewritten_post)}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-red-500 hover:text-red-500"
+                  onClick={() => handleDelete(rewrite.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
-      <Button variant="outline" size="sm" className="w-full">
-        Load More
-      </Button>
+      {pagination.hasMore && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full"
+          onClick={handleLoadMore}
+          disabled={loading}
+        >
+          {loading ? "Loading..." : "Load More"}
+        </Button>
+      )}
     </div>
   )
 }
