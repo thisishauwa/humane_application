@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
 import AnimatedTooltipPreview from "@/components/ui/animated-tooltip-demo"
+import { useToast } from "@/components/ui/use-toast"
+import { supabase } from "@/lib/supabase"
 
 export function LandingPage() {
   const [showSignup, setShowSignup] = useState(false)
@@ -191,22 +193,52 @@ function SignupForm({
   const [name, setName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Mock credentials for the user
-      console.log("Account created with:")
-      console.log("Email:", email)
-      console.log("Password:", password)
-      console.log("Name:", name)
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          },
+        },
+      })
 
-      onSuccess()
-    }, 1500)
+      if (error) throw error
+
+      if (data?.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: name,
+          })
+
+        if (profileError) throw profileError
+
+        toast({
+          title: "Account created successfully!",
+          description: "Please check your email to verify your account.",
+        })
+        onSuccess()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error creating account",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -248,39 +280,71 @@ function SignupForm({
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                placeholder="••••••••"
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
-
           <button
             type="submit"
-            className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
             disabled={isLoading}
+            className="w-full rounded-full bg-gradient-to-b from-blue-500 to-blue-600 p-2 text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? "Creating account..." : "Create account"}
           </button>
-
-          <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
-
-          <div className="text-center text-sm text-muted-foreground">
-            By creating an account, you agree to our Terms of Service and Privacy Policy.
-          </div>
-          <button
-            type="button"
-            className="w-full mt-4 text-sm text-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-            onClick={onLoginClick}
-          >
-            Already have an account? Sign in
-          </button>
         </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2 text-neutral-500 dark:bg-black dark:text-neutral-400">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={isLoading}
+          className="mt-4 w-full rounded-full border border-neutral-200 bg-white p-2 text-neutral-700 transition-all hover:bg-neutral-50 dark:border-neutral-800 dark:bg-black dark:text-neutral-200 dark:hover:bg-neutral-900"
+        >
+          <div className="flex items-center justify-center gap-2">
+            <svg className="h-4 w-4" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+              <path d="M1 1h22v22H1z" fill="none" />
+            </svg>
+            Google
+          </div>
+        </button>
+
+        <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
+          Already have an account?{" "}
+          <button onClick={onLoginClick} className="text-blue-500 hover:text-blue-600">
+            Sign in
+          </button>
+        </p>
       </div>
     </motion.div>
   )
@@ -297,25 +361,74 @@ function LoginForm({
   onForgotPassword: () => void
   onSignupClick: () => void
 }) {
-  const [email, setEmail] = useState("demo@humane.ai")
-  const [password, setPassword] = useState("password123")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Mock credentials for the user
-      console.log("Logged in with:")
-      console.log("Email:", email)
-      console.log("Password:", password)
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-      onSuccess()
-    }, 1500)
+      if (error) throw error
+
+      if (data?.user) {
+        // Update user profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            email: data.user.email,
+            updated_at: new Date().toISOString(),
+          })
+
+        if (profileError) throw profileError
+
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully signed in.",
+        })
+        onSuccess()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error signing in",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      })
+
+      if (error) throw error
+    } catch (error: any) {
+      toast({
+        title: "Error signing in with Google",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -327,7 +440,9 @@ function LoginForm({
     >
       <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
         <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">Welcome back</h2>
-        <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">Sign in to your Humane account</p>
+        <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
+          Sign in to your account to continue
+        </p>
 
         <form className="my-8" onSubmit={handleSubmit}>
           <div className="flex w-full flex-col space-y-2 mb-4">
@@ -341,8 +456,17 @@ function LoginForm({
               required
             />
           </div>
-          <div className="flex w-full flex-col space-y-2 mb-2">
-            <Label htmlFor="password">Password</Label>
+          <div className="flex w-full flex-col space-y-2 mb-8">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="text-sm text-blue-500 hover:text-blue-600"
+              >
+                Forgot password?
+              </button>
+            </div>
             <div className="relative">
               <Input
                 id="password"
@@ -350,45 +474,72 @@ function LoginForm({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="••••••••"
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
-          <div className="mb-8 text-right">
-            <button
-              type="button"
-              className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-              onClick={onForgotPassword}
-            >
-              Forgot password?
-            </button>
-          </div>
-
           <button
             type="submit"
-            className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
             disabled={isLoading}
+            className="w-full rounded-full bg-gradient-to-b from-blue-500 to-blue-600 p-2 text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? "Signing in..." : "Sign in"}
           </button>
-
-          <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
-
-          <button
-            type="button"
-            className="w-full text-sm text-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-            onClick={onSignupClick}
-          >
-            Don't have an account? Sign up
-          </button>
         </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2 text-neutral-500 dark:bg-black dark:text-neutral-400">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={isLoading}
+          className="mt-4 w-full rounded-full border border-neutral-200 bg-white p-2 text-neutral-700 transition-all hover:bg-neutral-50 dark:border-neutral-800 dark:bg-black dark:text-neutral-200 dark:hover:bg-neutral-900"
+        >
+          <div className="flex items-center justify-center gap-2">
+            <svg className="h-4 w-4" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+              <path d="M1 1h22v22H1z" fill="none" />
+            </svg>
+            Google
+          </div>
+        </button>
+
+        <p className="mt-4 text-center text-sm text-neutral-600 dark:text-neutral-400">
+          Don't have an account?{" "}
+          <button onClick={onSignupClick} className="text-blue-500 hover:text-blue-600">
+            Sign up
+          </button>
+        </p>
       </div>
     </motion.div>
   )
