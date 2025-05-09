@@ -30,6 +30,8 @@ export function HumanePlayground() {
   const [activeSection, setActiveSection] = useState<"main" | "profile" | "billing" | "settings">("main")
   const [contentType, setContentType] = useState<"linkedin" | "twitter" | "email">("linkedin")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const loadingStates = [
     { text: "Scanning for corporate jargon" },
@@ -56,56 +58,77 @@ export function HumanePlayground() {
   }
 
   const handleAnalyze = async () => {
-    setIsAnalyzing(true)
+    if (!post.trim()) {
+      setError("Please enter a post to analyze")
+      return
+    }
 
-    // Simulate API call with multi-step loader
-    setTimeout(() => {
-      const mockScore = Math.floor(Math.random() * 100)
-      const mockHighlighted = post.replace(
-        /(synergy|leverage|paradigm|optimize|bandwidth|circle back|deep dive|best practices|thought leader)/gi,
-        '<span class="bg-yellow-200 dark:bg-yellow-900">$1</span>',
-      )
-      const mockRecommendations = [
-        "Avoid corporate jargon like 'synergy' and 'leverage'",
-        "Use more personal and relatable language",
-        "Share a specific story rather than general statements",
-        "Reduce self-promotion and focus on value for readers",
-      ]
+    setLoading(true)
+    setError(null)
+    setRewrites([]) // Clear previous rewrites
+    setAnalyzed(false) // Reset analysis state
 
-      setScore(mockScore)
-      setHighlighted(mockHighlighted)
-      setRecommendations(mockRecommendations)
+    try {
+      // First, analyze the post
+      const analyzeResponse = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ post }),
+      })
+
+      if (!analyzeResponse.ok) {
+        const data = await analyzeResponse.json()
+        throw new Error(data.error || "Failed to analyze post")
+      }
+
+      const analyzeData = await analyzeResponse.json()
       setAnalyzed(true)
+      setScore(analyzeData.score)
+      setHighlighted(analyzeData.highlighted)
+      setRecommendations(analyzeData.recommendations)
 
-      // Generate rewrites automatically
-      handleRewrite()
+      // Then, generate rewrites with different tones
+      const tones = ["Human + Relatable", "Bold + Edgy", "Playful + Witty"]
+      const newRewrites = []
 
-      // End the loading state after all processing is done
-      setTimeout(() => {
-        setIsAnalyzing(false)
-      }, 1000)
-    }, 8000) // Give enough time for the loader to cycle through states
-  }
+      for (const tone of tones) {
+        try {
+          const rewriteResponse = await fetch("/api/rewrite", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ 
+              post, 
+              tone, 
+              intensity,
+              maxLength 
+            }),
+          })
 
-  const handleRewrite = async () => {
-    // Simulate API call to rewrite post
-    const mockRewrites = [
-      {
-        tone: "Human & Relatable",
-        text: "I'm excited to share that I just joined the team at Acme Corp! Looking forward to learning from this amazing group of people and contributing to some cool projects. If you're working on something similar, I'd love to connect!",
-      },
-      {
-        tone: "Bold & Edgy",
-        text: "Just landed at Acme Corp and ready to shake things up! No more corporate nonsense - just real work that matters. Who else is tired of the status quo? Let's chat if you're building something that actually makes a difference.",
-      },
-      {
-        tone: "Playful & Witty",
-        text: "New job, who dis? 👋 Just joined the Acme Corp crew and already found the good snacks in the break room. Priorities, right? Excited to dive into some fascinating projects that don't require a dictionary of buzzwords to explain!",
-      },
-    ]
+          if (rewriteResponse.ok) {
+            const rewriteData = await rewriteResponse.json()
+            newRewrites.push({ tone, text: rewriteData.rewrittenPost })
+          }
+        } catch (err) {
+          console.error(`Failed to generate rewrite for tone ${tone}:`, err)
+          // Continue with other tones even if one fails
+        }
+      }
 
-    setRewrites(mockRewrites)
-    setSelectedRewrite(mockRewrites[0].text)
+      if (newRewrites.length > 0) {
+        setRewrites(newRewrites)
+        setSelectedRewrite(newRewrites[0].text)
+      } else {
+        setError("Failed to generate any rewrites")
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const copyToClipboard = () => {
@@ -188,7 +211,7 @@ export function HumanePlayground() {
 
             {rewrites.length > 0 && (
               <div className="rounded-lg border p-4">
-                <h3 className="mb-2 text-sm font-medium">Rewrites</h3>
+                <h3 className="mb-2 text-sm font-medium">Rewrite Options</h3>
                 <Tabs defaultValue={rewrites[0].tone.toLowerCase().replace(/\s+/g, "-")}>
                   <TabsList className="w-full">
                     {rewrites.map((rewrite) => (
@@ -311,8 +334,9 @@ export function HumanePlayground() {
               <button
                 className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
                 onClick={handleAnalyze}
+                disabled={loading || !post.trim()}
               >
-                Analyze & Rewrite
+                {loading ? "Analyzing..." : "Analyze & Rewrite"}
               </button>
             </div>
           )}
@@ -411,7 +435,7 @@ export function HumanePlayground() {
       )}
 
       {/* Multi-step loader */}
-      <MultiStepLoader loadingStates={loadingStates} loading={isAnalyzing} duration={1000} />
+      <MultiStepLoader loadingStates={loadingStates} loading={loading} duration={1000} />
     </div>
   )
 }
