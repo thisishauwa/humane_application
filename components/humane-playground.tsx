@@ -1,0 +1,516 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Copy, Download, User, CreditCard, History, Info } from "lucide-react"
+import { ProfileSection } from "@/components/profile-section"
+import { BillingSection } from "@/components/billing-section"
+import { HistorySection } from "@/components/history-section"
+import { MultiStepLoader } from "@/components/ui/multi-step-loader"
+import { useRouter } from "next/navigation"
+
+export function HumanePlayground() {
+  const router = useRouter()
+  const [post, setPost] = useState("")
+  const [analyzed, setAnalyzed] = useState(false)
+  const [score, setScore] = useState(0)
+  const [highlighted, setHighlighted] = useState("")
+  const [recommendations, setRecommendations] = useState<string[]>([])
+  const [rewrites, setRewrites] = useState<{ tone: string; text: string }[]>([])
+  const [selectedRewrite, setSelectedRewrite] = useState("")
+  const [intensity, setIntensity] = useState(5)
+  const [maxLength, setMaxLength] = useState(256)
+  const [activeMode, setActiveMode] = useState<"instructions" | "history">("instructions")
+  const [activeSection, setActiveSection] = useState<"main" | "profile" | "billing" | "settings">("main")
+  const [contentType, setContentType] = useState<"linkedin" | "twitter" | "email">("linkedin")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  const loadingStates = [
+    { text: "Scanning for corporate jargon" },
+    { text: "Identifying humblebrags" },
+    { text: "Detecting buzzwords" },
+    { text: "Measuring authenticity" },
+    { text: "Calculating cringe factor" },
+    { text: "Generating human alternatives" },
+    { text: "Polishing final rewrites" },
+    { text: "Preparing results" },
+  ]
+
+  const getPlaceholderText = () => {
+    switch (contentType) {
+      case "linkedin":
+        return "Write your LinkedIn post here..."
+      case "twitter":
+        return "Write your Twitter post here..."
+      case "email":
+        return "Write your email content here..."
+      default:
+        return "Write your content here..."
+    }
+  }
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true)
+
+    // Simulate API call with multi-step loader
+    setTimeout(() => {
+      const mockScore = Math.floor(Math.random() * 100)
+      const mockHighlighted = post.replace(
+        /(synergy|leverage|paradigm|optimize|bandwidth|circle back|deep dive|best practices|thought leader)/gi,
+        '<span class="bg-yellow-200 dark:bg-yellow-900">$1</span>',
+      )
+      const mockRecommendations = [
+        "Avoid corporate jargon like 'synergy' and 'leverage'",
+        "Use more personal and relatable language",
+        "Share a specific story rather than general statements",
+        "Reduce self-promotion and focus on value for readers",
+      ]
+
+      setScore(mockScore)
+      setHighlighted(mockHighlighted)
+      setRecommendations(mockRecommendations)
+      setAnalyzed(true)
+
+      // Generate rewrites automatically
+      handleRewrite()
+
+      // End the loading state after all processing is done
+      setTimeout(() => {
+        setIsAnalyzing(false)
+      }, 1000)
+    }, 8000) // Give enough time for the loader to cycle through states
+  }
+
+  const handleRewrite = async () => {
+    // Simulate API call to rewrite post
+    const mockRewrites = [
+      {
+        tone: "Human & Relatable",
+        text: "I'm excited to share that I just joined the team at Acme Corp! Looking forward to learning from this amazing group of people and contributing to some cool projects. If you're working on something similar, I'd love to connect!",
+      },
+      {
+        tone: "Bold & Edgy",
+        text: "Just landed at Acme Corp and ready to shake things up! No more corporate nonsense - just real work that matters. Who else is tired of the status quo? Let's chat if you're building something that actually makes a difference.",
+      },
+      {
+        tone: "Playful & Witty",
+        text: "New job, who dis? 👋 Just joined the Acme Corp crew and already found the good snacks in the break room. Priorities, right? Excited to dive into some fascinating projects that don't require a dictionary of buzzwords to explain!",
+      },
+    ]
+
+    setRewrites(mockRewrites)
+    setSelectedRewrite(mockRewrites[0].text)
+  }
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(selectedRewrite || post)
+  }
+
+  const download = (format: "txt" | "md") => {
+    const content = selectedRewrite || post
+    const blob = new Blob([content], { type: format === "txt" ? "text/plain" : "text/markdown" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `post.${format}`
+    a.click()
+  }
+
+  const handleLogout = () => {
+    // In a real app, this would clear auth tokens, etc.
+    console.log("Logging out...")
+    router.push("/")
+  }
+
+  const getScoreColor = (score: number) => {
+    if (score <= 20) return "bg-green-500"
+    if (score <= 50) return "bg-yellow-500"
+    if (score <= 80) return "bg-orange-500"
+    return "bg-red-500"
+  }
+
+  const getScoreLabel = (score: number) => {
+    if (score <= 20) return "Authentic"
+    if (score <= 50) return "Slightly Corporate"
+    if (score <= 80) return "Very Corporate"
+    return "Maximum Cringe"
+  }
+
+  const renderMainContent = () => (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_350px]">
+      <div className="flex flex-col space-y-4">
+        <Card className="flex-1 rounded-lg border p-4">
+          <div className="relative flex flex-col h-full">
+            <Textarea
+              placeholder={getPlaceholderText()}
+              className="min-h-[300px] w-full resize-none border-0 p-0 focus-visible:ring-0 flex-grow"
+              value={post}
+              onChange={(e) => setPost(e.target.value)}
+            />
+            <div className="text-sm text-muted-foreground mt-2">
+              {post.length} / {maxLength} characters
+            </div>
+          </div>
+        </Card>
+
+        {analyzed && (
+          <div className="space-y-4">
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-2 text-sm font-medium">Cringometer</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{getScoreLabel(score)}</span>
+                  <span className="text-sm font-medium">{score}/100</span>
+                </div>
+                <Progress value={score} className={getScoreColor(score)} />
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-2 text-sm font-medium">Highlighted Issues</h3>
+              <div className="rounded-md bg-muted/50 p-3 text-sm" dangerouslySetInnerHTML={{ __html: highlighted }} />
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-2 text-sm font-medium">Recommendations</h3>
+              <ul className="list-disc pl-5 text-sm">
+                {recommendations.map((rec, i) => (
+                  <li key={i}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+
+            {rewrites.length > 0 && (
+              <div className="rounded-lg border p-4">
+                <h3 className="mb-2 text-sm font-medium">Rewrites</h3>
+                <Tabs defaultValue={rewrites[0].tone.toLowerCase().replace(/\s+/g, "-")}>
+                  <TabsList className="w-full">
+                    {rewrites.map((rewrite) => (
+                      <TabsTrigger
+                        key={rewrite.tone}
+                        value={rewrite.tone.toLowerCase().replace(/\s+/g, "-")}
+                        onClick={() => setSelectedRewrite(rewrite.text)}
+                      >
+                        {rewrite.tone}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {rewrites.map((rewrite) => (
+                    <TabsContent key={rewrite.tone} value={rewrite.tone.toLowerCase().replace(/\s+/g, "-")}>
+                      <div className="mt-2 rounded-md bg-muted/50 p-4 text-sm">{rewrite.text}</div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    className="px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+                    onClick={copyToClipboard}
+                  >
+                    <Copy className="mr-2 h-4 w-4 inline" />
+                    Copy
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+                    onClick={() => download("txt")}
+                  >
+                    <Download className="mr-2 h-4 w-4 inline" />
+                    Download .txt
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+                    onClick={() => download("md")}
+                  >
+                    <Download className="mr-2 h-4 w-4 inline" />
+                    Download .md
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        <div className="space-y-4 rounded-lg border p-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Mode</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={activeMode === "instructions" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 justify-center"
+                onClick={() => setActiveMode("instructions")}
+              >
+                <Info className="h-5 w-5" />
+              </Button>
+              <Button
+                variant={activeMode === "history" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 justify-center"
+                onClick={() => setActiveMode("history")}
+              >
+                <History className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {activeMode === "instructions" && (
+            <div className="space-y-4">
+              <div className="rounded-md bg-muted/50 p-3 text-sm">
+                <h4 className="font-medium">How to use Humane:</h4>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Paste your {contentType} post in the text area</li>
+                  <li>Adjust the parameters to control the analysis</li>
+                  <li>Click "Analyze & Rewrite" to check your post's "cringe factor"</li>
+                  <li>Review the analysis and suggested rewrites</li>
+                  <li>Choose a rewrite style that fits your voice</li>
+                  <li>Copy or download your improved post</li>
+                </ol>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Maximum Length</h3>
+                  <span className="text-sm text-muted-foreground">{maxLength}</span>
+                </div>
+                <Slider
+                  value={[maxLength]}
+                  min={50}
+                  max={500}
+                  step={1}
+                  onValueChange={(value) => setMaxLength(value[0])}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Rewrite Intensity</h3>
+                  <span className="text-sm text-muted-foreground">{intensity}</span>
+                </div>
+                <Slider
+                  value={[intensity]}
+                  min={1}
+                  max={10}
+                  step={1}
+                  onValueChange={(value) => setIntensity(value[0])}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Subtle</span>
+                  <span>Dramatic</span>
+                </div>
+              </div>
+
+              <button
+                className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+                onClick={handleAnalyze}
+              >
+                Analyze & Rewrite
+              </button>
+            </div>
+          )}
+
+          {activeMode === "history" && <HistorySection />}
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <h3 className="mb-2 text-sm font-medium">Usage</h3>
+          <div className="text-sm text-muted-foreground">
+            <p>Free plan: 4 rewrites remaining this month</p>
+            <button
+              className="w-full mt-2 px-8 py-3 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+              onClick={() => setActiveSection("billing")}
+            >
+              Upgrade to Premium ($9/month)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="mx-auto w-full max-w-[1400px] p-4">
+      <div className="mb-6 flex items-center justify-between border-b pb-4">
+        <h1 className="text-xl font-bold">Humane</h1>
+        <div className="flex items-center gap-2">
+          <Select
+            defaultValue="linkedin"
+            onValueChange={(value) => setContentType(value as "linkedin" | "twitter" | "email")}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select content type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="linkedin">LinkedIn Post</SelectItem>
+              <SelectItem value="twitter">Twitter Post</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+            </SelectContent>
+          </Select>
+          <button
+            className="p-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+            onClick={() => setActiveSection("profile")}
+          >
+            <User className="h-4 w-4" />
+          </button>
+          <button
+            className="p-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+            onClick={() => setActiveSection("billing")}
+          >
+            <CreditCard className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {activeSection === "main" && renderMainContent()}
+      {activeSection === "profile" && (
+        <div className="mx-auto max-w-md">
+          <button
+            className="mb-4 px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+            onClick={() => setActiveSection("main")}
+          >
+            ← Back
+          </button>
+          <Card className="rounded-lg border p-6">
+            <ProfileSection onSettingsClick={() => setActiveSection("settings")} onLogoutClick={handleLogout} />
+          </Card>
+        </div>
+      )}
+      {activeSection === "settings" && (
+        <div className="mx-auto max-w-md">
+          <button
+            className="mb-4 px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+            onClick={() => setActiveSection("profile")}
+          >
+            ← Back to Profile
+          </button>
+          <Card className="rounded-lg border p-6">
+            <AccountSettings onSave={() => setActiveSection("profile")} />
+          </Card>
+        </div>
+      )}
+      {activeSection === "billing" && (
+        <div className="mx-auto max-w-md">
+          <button
+            className="mb-4 px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
+            onClick={() => setActiveSection("main")}
+          >
+            ← Back
+          </button>
+          <Card className="rounded-lg border p-6">
+            <BillingSection />
+          </Card>
+        </div>
+      )}
+
+      {/* Multi-step loader */}
+      <MultiStepLoader loadingStates={loadingStates} loading={isAnalyzing} duration={1000} />
+    </div>
+  )
+}
+
+function AccountSettings({ onSave }: { onSave: () => void }) {
+  const [name, setName] = useState("John Doe")
+  const [email, setEmail] = useState("john.doe@example.com")
+  const [company, setCompany] = useState("Acme Corp")
+  const [notifications, setNotifications] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold mb-4">Account Settings</h2>
+        <p className="text-sm text-muted-foreground">Manage your account preferences and settings</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="name" className="text-sm font-medium">
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="company" className="text-sm font-medium">
+            Company
+          </label>
+          <input
+            id="company"
+            type="text"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label htmlFor="notifications" className="text-sm font-medium">
+            Email Notifications
+          </label>
+          <input
+            id="notifications"
+            type="checkbox"
+            checked={notifications}
+            onChange={(e) => setNotifications(e.target.checked)}
+            className="h-4 w-4"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label htmlFor="darkMode" className="text-sm font-medium">
+            Dark Mode
+          </label>
+          <input
+            id="darkMode"
+            type="checkbox"
+            checked={darkMode}
+            onChange={(e) => setDarkMode(e.target.checked)}
+            className="h-4 w-4"
+          />
+        </div>
+      </div>
+
+      <div className="pt-4 flex justify-end space-x-2">
+        <button
+          className="px-4 py-2 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 transition duration-200"
+          onClick={onSave}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-8 py-2 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+          onClick={onSave}
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  )
+}
