@@ -549,17 +549,33 @@ function ForgotPasswordForm({ onClose, onBackToLogin }: { onClose: () => void; o
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
+
+      if (error) throw error
+
       setIsSubmitted(true)
-      console.log("Password reset requested for:", email)
-    }, 1500)
+      toast({
+        title: "Reset link sent",
+        description: "Check your email for the password reset link.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error sending reset link",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -593,7 +609,7 @@ function ForgotPasswordForm({ onClose, onBackToLogin }: { onClose: () => void; o
 
             <button
               type="submit"
-              className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+              className="w-full rounded-full bg-gradient-to-b from-blue-500 to-blue-600 p-2 text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isLoading}
             >
               {isLoading ? "Sending..." : "Send reset link"}
@@ -602,7 +618,7 @@ function ForgotPasswordForm({ onClose, onBackToLogin }: { onClose: () => void; o
             <div className="mt-4 text-center">
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                className="text-sm text-blue-500 hover:text-blue-600"
                 onClick={onBackToLogin}
               >
                 Back to sign in
@@ -615,7 +631,7 @@ function ForgotPasswordForm({ onClose, onBackToLogin }: { onClose: () => void; o
               We've sent a password reset link to <span className="font-medium">{email}</span>. Please check your email.
             </div>
             <button
-              className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+              className="w-full rounded-full bg-gradient-to-b from-blue-500 to-blue-600 p-2 text-white transition-all hover:shadow-lg"
               onClick={onBackToLogin}
             >
               Back to sign in
