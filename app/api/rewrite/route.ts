@@ -23,16 +23,16 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check user authentication
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
     // For development, allow rewrites without authentication
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production') {
       const rewrittenPost = await rewritePost(post, tone, intensityNum)
       return NextResponse.json({ rewrittenPost })
     }
+
+    // Check user authentication
+    const cookieStore = cookies()
+    const supabase = await createClient(cookieStore)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     if (usageError) {
       console.error("Error checking usage:", usageError)
       // For development, continue even if usage check fails
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV !== 'production') {
         const rewrittenPost = await rewritePost(post, tone, intensityNum)
         return NextResponse.json({ rewrittenPost })
       }
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     const rewriteCount = usage?.rewrite_count || 0
     if (rewriteCount >= 4) {
       // For development, allow rewrites even if limit is reached
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV !== 'production') {
         const rewrittenPost = await rewritePost(post, tone, intensityNum)
         return NextResponse.json({ rewrittenPost })
       }

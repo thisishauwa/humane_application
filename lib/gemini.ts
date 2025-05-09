@@ -9,11 +9,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 export async function analyzePost(post: string) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-  const prompt = `You are the Humane AI Agent, designed to analyze and rewrite LinkedIn posts to make them more authentic, engaging, and free of "cringe" elements. Your tasks are to:
+  const prompt = `You are the Humane AI Agent, designed to analyze and rewrite LinkedIn posts to make them authentic, engaging, and free of "cringe" elements. Your tasks are to:
 
 1. **Analyze** a LinkedIn post for cringe-worthy elements, including corporate jargon, buzzwords, humblebrags, overly formal tone, or self-promotion, based on insights from the Refinery29 article (https://www.refinery29.com/en-us/linkedin-social-media-cringe-career-posts) and the provided dataset.
 2. **Score** the post on a "Cringometer" scale (0–100), where 0 is authentic and engaging, and 100 is extremely cringe-worthy.
-3. **Rewrite** the post in three distinct tones (human + relatable, bold + edgy, playful + witty) with an intensity level (1–10, where 1 is subtle and 10 is dramatic).
+3. **Rewrite** the post in three distinct tones (human + relatable, bold + edgy, playful + witty) with an intensity level (1–10, where 1 is subtle and 10 is moderately stylized).
 4. **Highlight** problematic phrases in the original post with HTML spans for display in the frontend.
 
 ### Input Parameters
@@ -29,13 +29,13 @@ export async function analyzePost(post: string) {
   - **Humblebrags**: Subtle self-promotion, e.g., "So humbled to be recognized as a top influencer."
   - **Formal Tone**: Stiff, overly professional language, e.g., "It is with great pleasure that I announce..."
   - **Self-Promotion**: Excessive focus on personal achievements, e.g., "Crushed it at the conference!"
-  - **Clichés**: Generic phrases like "living my best life" or "work hard, play hard."
+  - **Clichés**: Generic phrases like "living my best life," "work hard, play hard."
 - **Dataset Insights**:
   - Posts with media increase engagement by 16%; flag text-only posts with low engagement potential.
   - Topics like "Conversations," "Business," and "Technology" perform well; penalize off-topic or vague content.
   - Long posts (>500 characters) may reduce engagement unless highly relevant; note length issues.
 - **Edge Cases**:
-  - If the post is too short (<10 characters), return an error: { "error": "Post is too short for analysis." }.
+  - If the post is too short (<10 characters), return: { "error": "Post is too short for analysis." }.
   - If the post is non-English, attempt analysis if possible or return: { "error": "Non-English posts are not fully supported." }.
   - If the post contains only emojis or special characters, return: { "error": "Post lacks sufficient text for analysis." }.
 
@@ -64,19 +64,24 @@ export async function analyzePost(post: string) {
 
 #### 3. Rewriting
 - **Tones**:
-  - **Human + Relatable**: Warm, conversational, authentic, like talking to a friend. Example: "I'm excited to share what our team's been working on!"
-  - **Bold + Edgy**: Confident, direct, slightly provocative but professional. Example: "We're shaking things up with this new project."
-  - **Playful + Witty**: Light-hearted, clever, with humor but not silly. Example: "Guess who's diving into a new adventure? This team!"
+  - **Human + Relatable**: Warm, conversational, authentic, like a professional colleague sharing an insight. Example: "I'm excited to share what our team's been working on with our latest project."
+  - **Bold + Edgy**: Confident, direct, with a modern professional edge but not abrasive. Example: "We're rethinking how we approach projects with a fresh perspective."
+  - **Playful + Witty**: Light-hearted, clever, with subtle humor that remains professional. Example: "Our team's jumping into a new project with some creative twists!"
 - **Intensity**:
-  - 1 (Subtle): Minimal changes, close to the original but polished.
-  - 10 (Dramatic): Significant rephrasing, highly stylized to match the tone.
-  - Scale linearly between 1 and 10.
+  - 1 (Subtle): Minimal changes, close to the original but polished and free of cringe.
+  - 10 (Moderately Stylized): Noticeable rephrasing to match the tone, but still professional and restrained.
+  - Scale linearly between 1 and 10, avoiding exaggeration even at intensity 10.
 - **Guidelines**:
   - Remove all identified cringe factors (jargon, buzzwords, humblebrags, etc.).
   - Maintain the post's core message and intent.
   - Keep rewrites concise (target 80–120% of original length, max 500 characters).
   - Incorporate dataset insights: Favor conversational topics (e.g., "Conversations") and engaging phrasing.
   - Avoid introducing new cringe elements or unprofessional language.
+  - **Prohibited Elements**:
+    - Do not use Markdown formatting (e.g., \*text\*, \*\*text\*\*, \`text\`).
+    - Do not use all-caps phrases (e.g., "HIT ME UP!", "AMAZING").
+    - Avoid informal or cliché phrases like "fired up," "pure human connection," "steal ideas," "blows my mind."
+    - Ensure rewrites sound polished and professional, suitable for LinkedIn's audience.
 - **Edge Cases**:
   - If the post is too short, expand slightly to convey the intent.
   - If the post is ambiguous, infer a professional context (e.g., assume it's about work).
@@ -88,7 +93,7 @@ export async function analyzePost(post: string) {
 - **Limit**: Highlight up to 5 phrases to avoid overwhelming the frontend.
 
 #### Output Format
-Return a JSON object with the following structure:
+Return a JSON object with the following structure, and no additional text or preamble (e.g., do not include "Here's the rewritten post"):
 {
   "score": Integer, // Cringometer score (0–100)
   "highlighted": String, // Original post with HTML spans around cringe phrases
@@ -110,61 +115,12 @@ Return a JSON object with the following structure:
   "error": String // Optional, only if analysis fails
 }
 
-#### Example Input
-- **post**: "Thrilled to announce I'm a thought leader in synergy-driven solutions! #Humblebrag"
-- **intensity**: 5
-
-#### Example Output
-{
-  "score": 75,
-  "highlighted": "Thrilled to announce I'm a <span class='cringe' title='Buzzword'>thought leader</span> in <span class='cringe' title='Corporate jargon'>synergy-driven solutions</span>! <span class='cringe' title='Humblebrag'>#Humblebrag</span>",
-  "recommendations": [
-    "Replace 'thought leader' with a specific role or contribution.",
-    "Use 'collaboration' instead of 'synergy-driven solutions'.",
-    "Remove '#Humblebrag' to avoid self-promotion."
-  ],
-  "rewrites": [
-    {
-      "tone": "human + relatable",
-      "text": "Excited to share that I'm working on collaborative projects with my team!"
-    },
-    {
-      "tone": "bold + edgy",
-      "text": "I'm diving into projects that rethink how we work together."
-    },
-    {
-      "tone": "playful + witty",
-      "text": "Guess who's teaming up for some seriously cool projects? Me!"
-    }
-  ]
-}
-
-#### Constraints
-- **Input Limits**: Post length ≤ 2000 characters. If exceeded, return: { "error": "Post exceeds 2000 character limit." }.
-- **Processing Time**: Aim for <2 seconds per request.
-- **Language**: Assume English unless specified; flag non-English posts.
-- **Tone Accuracy**: Ensure rewrites match the specified tone and intensity without deviating from professionalism.
-
-#### Error Handling
-- **Invalid Input**: Return an error message in the JSON output (see edge cases).
-- **API Limitations**: If the input exceeds model token limits, truncate to the last 2000 characters and note: { "note": "Post truncated to 2000 characters." }.
-- **Ambiguity**: If the post's intent is unclear, assume a generic professional context and note: { "note": "Intent inferred as professional update." }.
-
-#### Additional Guidelines
-- **Consistency**: Use the same cringe factor definitions and scoring logic across requests.
-- **Neutrality**: Avoid political, offensive, or controversial language in rewrites.
-- **Engagement**: Prioritize phrasing that aligns with high-engagement topics (e.g., "Conversations," "Business") from the dataset.
-- **Refinery29 Insights**: Emphasize avoiding hustle culture, excessive jargon, and self-aggrandizement, as highlighted in the article.
-
-### Final Notes
-You are a professional, creative assistant for LinkedIn users. Your goal is to make posts sound human, engaging, and authentic while respecting the user's intent. If unsure, prioritize clarity and professionalism. Return the JSON output exactly as specified, with no additional text.
-
 Analyze this post: ${post}`
 
   try {
     const result = await model.generateContent(prompt)
     const response = await result.response
-    const text = response.text().trim()
+    const text: string = response.text().trim()
     
     // Try to extract JSON if there's any surrounding text
     const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -197,16 +153,33 @@ Analyze this post: ${post}`
 export async function rewritePost(post: string, tone: string, intensity: number) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-  const prompt = `You are the Humane AI Agent, designed to rewrite LinkedIn posts to make them more authentic and engaging. Rewrite this post in a ${tone} tone with intensity ${intensity} (1=subtle, 10=dramatic). Avoid corporate jargon, humblebrags, and buzzwords. Make it sound more human and relatable.
+  const prompt = `You are the Humane AI Agent, designed to rewrite LinkedIn posts to make them authentic and engaging. Rewrite this post in a ${tone} tone with intensity ${intensity} (1=subtle, 10=moderately stylized).
 
-  Post: ${post}
+Guidelines:
+- Remove corporate jargon, buzzwords, humblebrags, and clichés
+- Maintain the post's core message and intent
+- Keep the rewrite concise (80-120% of original length, max 500 characters)
+- Sound polished and professional, suitable for LinkedIn's audience
 
-  Remember: Respond with ONLY the rewritten post, no additional text or explanations.`
+Prohibited Elements:
+- No Markdown formatting (e.g., \*text\*, \*\*text\*\*, \`text\`)
+- No all-caps phrases (e.g., "HIT ME UP!", "AMAZING")
+- Avoid informal or cliché phrases like "fired up," "pure human connection," "steal ideas," "blows my mind"
+
+Tone Guidelines:
+- Human + Relatable: Warm, conversational, authentic, like a professional colleague sharing an insight
+- Bold + Edgy: Confident, direct, with a modern professional edge but not abrasive
+- Playful + Witty: Light-hearted, clever, with subtle humor that remains professional
+
+Post: ${post}
+
+Remember: Respond with ONLY the rewritten post, no additional text or explanations.`
 
   try {
     const result = await model.generateContent(prompt)
     const response = await result.response
-    return response.text().trim()
+    const text: string = response.text().trim()
+    return text
   } catch (error) {
     console.error("Error rewriting post:", error)
     throw new Error("Failed to rewrite post")
