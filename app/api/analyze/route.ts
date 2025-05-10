@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
+import { analyzeAndRewritePost } from "@/lib/gemini"
 
 // Simple function to detect corporate language patterns
 function analyzePost(post: string) {
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
 
     // For development, allow analysis without authentication
     if (process.env.NODE_ENV === 'development') {
-      const analysis = analyzePost(post)
+      const analysis = await analyzeAndRewritePost(post)
       return NextResponse.json(analysis)
     }
 
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const analysis = analyzePost(post)
+    const analysis = await analyzeAndRewritePost(post)
     return NextResponse.json(analysis)
   } catch (error: any) {
     console.error("Error in analyze route:", error)

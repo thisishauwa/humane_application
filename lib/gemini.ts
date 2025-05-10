@@ -93,11 +93,15 @@ Return a JSON response with:
     "targetScore": ${Math.max(0, analysisJson.score - 30)},
     "cringeFactors": [list 3-5 specific phrases or elements that make the post cringe],
     "recommendations": [
-      "You're begging for likes and engagement instead of providing value.",
-      "You sound too emotional when you say things like '[exact phrase]'.",
-      "You're being desperate and needy instead of confident.",
-      "Your skills section is bloated and unfocused.",
-      "You're not being specific about what you want - be direct."
+      // If score > 80, return only: "That's too cringe, even for us"
+      // Otherwise, generate 3-5 specific recommendations based on the actual post content.
+      // Examples of the style (DO NOT COPY THESE EXACTLY):
+      // - "You're begging for likes and engagement instead of providing value."
+      // - "You sound too emotional when you say things like '[exact phrase]'."
+      // - "You're being desperate and needy instead of confident."
+      // - "Your skills section is bloated and unfocused."
+      // - "You're not being specific about what you want - be direct."
+      // Instead, analyze the post and provide specific, actionable recommendations.
     ]
   },
   "rewrites": {
@@ -141,8 +145,8 @@ Important: Make sure each rewrite is complete and properly formatted. Do not exc
       score: result.analysis.score,
       targetScore: result.analysis.targetScore || Math.max(0, result.analysis.score - 30),
       highlighted: highlightCringeFactors(post, result.analysis.cringeFactors),
-      recommendations: result.analysis.recommendations,
-      rewrites: [
+      recommendations: result.analysis.score > 80 ? ["That's too cringe, even for us"] : result.analysis.recommendations,
+      rewrites: result.analysis.score > 80 ? [] : [
         {
           tone: "human + relatable",
           text: result.rewrites.humanRelatable
@@ -214,111 +218,29 @@ export async function analyzePost(post: string) {
 export async function rewritePost(post: string, tone: string) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-  // First, analyze the post for cringe factors and context
-  const analysisPrompt = `
-You're helping analyze a LinkedIn post to identify what makes it potentially "cringe" and how to improve it.
+  const prompt = `
+You're rewriting a LinkedIn post to make it more authentic and engaging.
 The post is: "${post}"
 
-First, analyze this post for:
-1. The core message/intent (what is the person actually trying to communicate?)
-2. The specific elements that make it feel inauthentic or "cringe," if any:
-   - Corporate jargon or buzzwords
-   - Humble-bragging or self-promotion
-   - Overly formal or dramatic tone
-   - Forced storytelling or contrived lessons
-   - Any disconnect between personal anecdotes and business advice
-3. The topic and industry context of the post
-4. Strengths to preserve in the rewrite
+Rewrite it in a ${tone} tone.
 
-Based on these elements, please return a JSON response with:
-- A score from 0-100 measuring how "cringe" the post is
-- The core message that should be preserved
-- 3-5 specific improvements that would make the post more authentic and engaging (use frank, direct language)
-- The key elements that should be highlighted in rewrites
-
-Response format:
-{
-  "score": number,
-  "coreMessage": "string",
-  "improvements": ["string", "string", "string"],
-  "keyElements": ["string", "string"],
-  "toneGuidance": "string"
-}
-`
-
-  try {
-    // Step 1: Get detailed analysis of the post
-    const analysisResult = await model.generateContent(analysisPrompt)
-    const analysisResponse = await analysisResult.response
-    const analysisText = analysisResponse.text().trim()
-    
-    // Extract JSON from response (handle any text wrapper)
-    const jsonMatch = analysisText.match(/\{[\s\S]*\}/)
-    const analysisJson = JSON.parse(jsonMatch ? jsonMatch[0] : analysisText)
-    
-    // Step 2: Use the detailed analysis to inform the rewrite
-    const rewritePrompt = `
-You're rewriting a LinkedIn post to make it more authentic and engaging. The tone should be ${tone}.
-
-Here's the original post: "${post}"
-
-The analysis shows:
-- Core message to preserve: "${analysisJson.coreMessage}"
-- Specific improvements needed:
-${analysisJson.improvements.map((imp: string) => `  - ${imp}`).join('\n')}
-- Key elements to highlight: ${analysisJson.keyElements.join(', ')}
-- Tone guidance: ${analysisJson.toneGuidance}
-- Current cringe score: ${analysisJson.score}
-
-For the rewrite:
-- Focus on addressing the specific improvements above
-- Preserve the core message
+Guidelines:
 - Make it feel like it comes from a real person, not AI
 - Avoid corporate jargon, buzzwords, and clichés
 - Maintain authenticity and professionalism
-- Keep the length similar to or shorter than the original post (${post.length} characters)
-- Remember: shorter, more concise posts perform better on LinkedIn
-- Cut unnecessary words and get straight to the point
-- If the original is too long, make it significantly shorter while keeping the key message
-- Your goal is to reduce the cringe score by at least 30 points (from ${analysisJson.score} to ${Math.max(0, analysisJson.score - 30)} or lower). This is a hard requirement.
-- Focus on eliminating the specific cringe factors identified in the analysis
+- Keep it concise and to the point
+- Focus on the core message
+- Make it engaging and relatable
 
-Return a JSON response with:
-{
-  "rewrite": "full rewrite text"
-}
-
-Important: Make sure the rewrite is complete and properly formatted. Do not exceed Gemini's token limits by creating an excessively long response.
+Return only the rewritten post text, nothing else.
 `
 
-    // Get the rewrite
-    const rewriteResult = await model.generateContent(rewritePrompt)
-    const rewriteResponse = await rewriteResult.response
-    const rewriteText = rewriteResponse.text().trim()
-    
-    // Extract JSON from response (handle any text wrapper)
-    const rewriteJsonMatch = rewriteText.match(/\{[\s\S]*\}/)
- 
-    if (!rewriteJsonMatch) {
-      throw new Error("Failed to extract valid JSON from rewrite response")
-    }
-    
-    let result
-    try {
-      result = JSON.parse(rewriteJsonMatch[0])
-      
-      // Validate the structure to catch incomplete JSON
-      if (!result.rewrite) {
-        throw new Error("Incomplete rewrite in response")
-      }
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError)
-      throw new Error("Failed to parse rewrite JSON response")
-    }
-    
-    return result.rewrite
+  try {
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    return response.text().trim()
   } catch (error: any) {
     console.error("Error rewriting post:", error)
-    throw new Error(`Failed to rewrite post: ${error.message}`)
+    throw new Error(`Failed to generate rewrite for tone ${tone}`)
   }
 }

@@ -5,36 +5,18 @@ import { cookies } from "next/headers"
 
 export async function POST(req: Request) {
   try {
-    const { post, tone, intensity, maxLength } = await req.json()
+    const { post, tone } = await req.json()
 
-    if (!post || !tone || !intensity) {
+    if (!post || !tone) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       )
     }
 
-    // Validate intensity
-    const intensityNum = Number(intensity)
-    if (isNaN(intensityNum) || intensityNum < 1 || intensityNum > 10) {
-      return NextResponse.json(
-        { error: "Intensity must be a number between 1 and 10" },
-        { status: 400 }
-      )
-    }
-
-    // Validate maxLength
-    const maxLengthNum = Number(maxLength) || 1000
-    if (isNaN(maxLengthNum) || maxLengthNum < 1 || maxLengthNum > 2000) {
-      return NextResponse.json(
-        { error: "Max length must be a number between 1 and 2000" },
-        { status: 400 }
-      )
-    }
-
     // For development, allow rewrites without authentication
     if (process.env.NODE_ENV !== 'production') {
-      const rewrittenPost = await rewritePost(post, tone, intensityNum, maxLengthNum)
+      const rewrittenPost = await rewritePost(post, tone)
       return NextResponse.json({ rewrittenPost })
     }
 
@@ -61,7 +43,7 @@ export async function POST(req: Request) {
       console.error("Error checking usage:", usageError)
       // For development, continue even if usage check fails
       if (process.env.NODE_ENV !== 'production') {
-        const rewrittenPost = await rewritePost(post, tone, intensityNum, maxLengthNum)
+        const rewrittenPost = await rewritePost(post, tone)
         return NextResponse.json({ rewrittenPost })
       }
       return NextResponse.json(
@@ -74,7 +56,7 @@ export async function POST(req: Request) {
     if (rewriteCount >= 4) {
       // For development, allow rewrites even if limit is reached
       if (process.env.NODE_ENV !== 'production') {
-        const rewrittenPost = await rewritePost(post, tone, intensityNum, maxLengthNum)
+        const rewrittenPost = await rewritePost(post, tone)
         return NextResponse.json({ rewrittenPost })
       }
       return NextResponse.json(
@@ -84,7 +66,7 @@ export async function POST(req: Request) {
     }
 
     // Generate rewrite
-    const rewrittenPost = await rewritePost(post, tone, intensityNum, maxLengthNum)
+    const rewrittenPost = await rewritePost(post, tone)
 
     // Save rewrite to database
     const { error: rewriteError } = await supabase
