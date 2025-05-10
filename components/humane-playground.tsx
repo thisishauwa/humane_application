@@ -192,9 +192,9 @@ export function HumanePlayground() {
   }
 
   const getScoreLabel = (score: number) => {
-    if (score <= 20) return "Authentic"
-    if (score <= 50) return "Slightly Corporate"
-    if (score <= 80) return "Very Corporate"
+    if (score <= 20) return "Soft"
+    if (score <= 50) return "Slightly Cringe"
+    if (score <= 80) return "Very Cringe"
     return "Maximum Cringe"
   }
 
@@ -248,7 +248,7 @@ export function HumanePlayground() {
         {analyzed && (
           <div className="space-y-4">
             <div className="rounded-lg border p-4">
-              <h3 className="mb-2 text-sm font-medium">Cringometer</h3>
+              <h3 className="mb-2 text-sm font-bold">Cringometer</h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{getScoreLabel(score)}</span>
@@ -259,7 +259,7 @@ export function HumanePlayground() {
             </div>
 
             <div className="rounded-lg border p-4">
-              <h3 className="mb-2 text-sm font-medium">Recommendations</h3>
+              <h3 className="mb-2 text-sm font-bold">Recommendations</h3>
               <ul className="list-disc pl-5 text-sm">
                 {recommendations.map((rec, i) => (
                   <li key={i}>{rec}</li>
@@ -269,7 +269,7 @@ export function HumanePlayground() {
 
             {rewrites.length > 0 && (
               <div className="rounded-lg border p-4">
-                <h3 className="mb-2 text-sm font-medium">Rewrite Options</h3>
+                <h3 className="mb-2 text-sm font-bold">Rewrite Options</h3>
                 <Tabs defaultValue={rewrites[0].tone}>
                   <TabsList className="w-full flex px-0.5 pb-[5px] m-0 gap-0 rounded-lg border bg-gray-100 overflow-hidden">
                     {rewrites.map((rewrite, idx) => {
@@ -332,7 +332,7 @@ export function HumanePlayground() {
         <div className="space-y-4 rounded-lg border p-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Mode</h3>
+              <h3 className="text-sm font-bold">Mode</h3>
             </div>
             <div className="flex gap-2">
               <Button
@@ -383,7 +383,7 @@ export function HumanePlayground() {
         </div>
 
         <div className="rounded-lg border p-4">
-          <h3 className="mb-2 text-sm font-medium">Usage</h3>
+          <h3 className="mb-2 text-sm font-bold">Usage</h3>
           <div className="text-sm text-muted-foreground">
             <p>Free plan: 4 rewrites remaining this month</p>
             <button
