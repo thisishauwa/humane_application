@@ -194,6 +194,7 @@ function SignupForm({
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -224,9 +225,17 @@ function SignupForm({
 
         if (profileError) throw profileError
 
+        // Sign in immediately after sign up
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) throw signInError
+
         toast({
           title: "Account created successfully!",
-          description: "Please check your email to verify your account.",
+          description: "Welcome to Humane!",
         })
         onSuccess()
       }
@@ -366,6 +375,7 @@ function LoginForm({
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -398,9 +408,10 @@ function LoginForm({
         onSuccess()
       }
     } catch (error: any) {
+      console.error('Sign in process error:', error)
       toast({
         title: "Error signing in",
-        description: error.message,
+        description: error.message || 'An unexpected error occurred',
         variant: "destructive",
       })
     } finally {
