@@ -11,9 +11,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <title>Humane - Make your posts sound more human</title>
         <meta name="description" content="Transform corporate jargon into authentic, relatable content" />
+        <link rel="preload" href="/Font/BrittiSansTrial-Regular-BF6757bfd47ffbf.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Font/BrittiSansTrial-Bold-BF6757bfd4a96ed.otf" as="font" type="font/otf" crossOrigin="anonymous" />
       </head>
       <body className={`font-britti`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
           {children}
           <Toaster />
         </ThemeProvider>
