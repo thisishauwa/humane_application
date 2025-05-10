@@ -27,8 +27,6 @@ export function HumanePlayground() {
   const [recommendations, setRecommendations] = useState<string[]>([])
   const [rewrites, setRewrites] = useState<{ tone: string; text: string }[]>([])
   const [selectedRewrite, setSelectedRewrite] = useState("")
-  const [intensity, setIntensity] = useState(5)
-  const [maxLength, setMaxLength] = useState(500)
   const [activeMode, setActiveMode] = useState<"instructions" | "history">("instructions")
   const [activeSection, setActiveSection] = useState<"main" | "profile" | "billing" | "settings">("main")
   const [contentType, setContentType] = useState<"linkedin" | "twitter" | "email">("linkedin")
@@ -112,8 +110,6 @@ export function HumanePlayground() {
               body: JSON.stringify({ 
                 post, 
                 tone, 
-                intensity,
-                maxLength 
               }),
             })
 
@@ -213,7 +209,7 @@ export function HumanePlayground() {
               onChange={(e) => setPost(e.target.value)}
             />
             <div className="text-sm text-muted-foreground mt-2">
-              {post.length} / {maxLength} characters
+              {post.length} characters
             </div>
           </div>
         </Card>
@@ -249,16 +245,27 @@ export function HumanePlayground() {
               <div className="rounded-lg border p-4">
                 <h3 className="mb-2 text-sm font-medium">Rewrite Options</h3>
                 <Tabs defaultValue={rewrites[0].tone}>
-                  <TabsList className="w-full">
-                    {rewrites.map((rewrite) => (
-                      <TabsTrigger
-                        key={rewrite.tone}
-                        value={rewrite.tone}
-                        onClick={() => setSelectedRewrite(rewrite.text)}
-                      >
-                        {rewrite.tone}
-                      </TabsTrigger>
-                    ))}
+                  <TabsList className="w-full flex px-0.5 pb-[5px] m-0 gap-0 rounded-lg border border-gray-200 bg-gray-100 overflow-hidden">
+                    {rewrites.map((rewrite, idx) => {
+                      const isFirst = idx === 0;
+                      const isLast = idx === rewrites.length - 1;
+                      return (
+                        <TabsTrigger
+                          key={rewrite.tone}
+                          value={rewrite.tone}
+                          onClick={() => setSelectedRewrite(rewrite.text)}
+                          className={[
+                            "flex-1 py-2 text-sm font-medium border-0 border-r last:border-r-0 transition-colors",
+                            isFirst ? "rounded-l-md" : "",
+                            isLast ? "rounded-r-md" : "",
+                            "data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:font-semibold data-[state=active]:z-10 data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-gray-200 data-[state=active]:border-b-0 data-[state=active]:shadow-sm",
+                            "data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700"
+                          ].join(" ")}
+                        >
+                          {rewrite.tone}
+                        </TabsTrigger>
+                      );
+                    })}
                   </TabsList>
                   {rewrites.map((rewrite) => (
                     <TabsContent key={rewrite.tone} value={rewrite.tone}>
@@ -327,44 +334,11 @@ export function HumanePlayground() {
                 <h4 className="font-medium">How to use Humane:</h4>
                 <ol className="mt-2 list-decimal space-y-1 pl-5">
                   <li>Paste your {contentType} post in the text area</li>
-                  <li>Adjust the parameters to control the analysis</li>
                   <li>Click "Analyze & Rewrite" to check your post's "cringe factor"</li>
                   <li>Review the analysis and suggested rewrites</li>
                   <li>Choose a rewrite style that fits your voice</li>
                   <li>Copy or download your improved post</li>
                 </ol>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Maximum Length</h3>
-                  <span className="text-sm text-muted-foreground">{maxLength}</span>
-                </div>
-                <Slider
-                  value={[maxLength]}
-                  min={100}
-                  max={500}
-                  step={1}
-                  onValueChange={(value) => setMaxLength(value[0])}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Rewrite Intensity</h3>
-                  <span className="text-sm text-muted-foreground">{intensity}</span>
-                </div>
-                <Slider
-                  value={[intensity]}
-                  min={1}
-                  max={10}
-                  step={1}
-                  onValueChange={(value) => setIntensity(value[0])}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Subtle</span>
-                  <span>Dramatic</span>
-                </div>
               </div>
 
               <button
