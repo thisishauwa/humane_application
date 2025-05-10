@@ -190,102 +190,71 @@ Analyze this post: ${post}`
   }
 }
 
-export async function rewritePost(post: string, tone: string, intensity: number, maxLength: number = 1000) {
+export async function rewritePost(post: string, tone: string, intensity: number, maxLength: number = 1000, retryCount: number = 0) {
+  // Add max retry limit to prevent infinite recursion
+  if (retryCount >= 3) {
+    throw new Error("Failed to generate rewrite after 3 attempts")
+  }
+
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-  const prompt = `You are the Humane AI Agent, designed to rewrite LinkedIn posts to make them authentic and engaging. Rewrite this post in a ${tone} tone with intensity ${intensity} (1=subtle, 10=moderately stylized).
+  // First get recommendations to incorporate
+  let recommendations: string[] = []
+  try {
+    const analyzeResult = await analyzePost(post)
+    recommendations = analyzeResult.recommendations
+  } catch (error) {
+    console.error("Error getting recommendations:", error)
+    // Continue even if recommendations fail
+  }
 
-Guidelines:
-- First, analyze what the user is actually trying to communicate
-- Identify the core message, emotion, or insight they want to share
-- Structure the rewrite as a natural story or conversation
-- Remove corporate jargon, buzzwords, humblebrags, and clichés
-- Maintain the post's core message and intent
-- Generate a complete rewrite that fits within ${maxLength} characters
-- IMPORTANT: 
-  - Do not truncate or cut off text - the rewrite must be a complete, coherent message
-  - Aim to use 90-100% of the available ${maxLength} characters
-  - If the original message is too long, focus on the most important points while ensuring the rewrite is complete
-  - If the original message is too short, expand naturally to better utilize the available space
-- Sound polished and professional, suitable for LinkedIn's audience
+  const prompt = `You are the Humane AI Agent. Your task is to rewrite this LinkedIn post in a ${tone} tone with intensity ${intensity} (1=subtle, 10=moderately stylized).
 
-Storytelling Structure:
-1. Hook: Start with something that draws readers in
-2. Context: Build the background naturally without over-explaining
-3. Development: Share the main message or insight
-4. Resolution: End with a clear takeaway or call to action
-
-Narrative Techniques:
-- Show, don't tell (e.g., instead of "I'm excited", show the excitement through the story)
-- Create a natural arc (setup → development → resolution)
-- Use concrete details and examples
-- Vary sentence structure to create rhythm
-- Use transitions to connect ideas smoothly
-- Break up long paragraphs into shorter ones
-- Use active voice instead of passive voice
-- When expanding short posts:
-  - Add relevant context or background
-  - Include specific examples or details
-  - Develop the main points more fully
-  - Add a clear call to action or takeaway
-
-Intensity Guidelines:
-- Intensity 1: Minimal changes, just removing cringe elements
-- Intensity 5: Moderate rephrasing while maintaining core message
-- Intensity 10: Significant rephrasing to match tone, but still professional
-- Scale linearly between these points
-
-Prohibited Elements:
-- No Markdown formatting (e.g., text, text, text)
-- No all-caps phrases (e.g., "HIT ME UP!", "AMAZING")
-- Avoid informal or cliché phrases like "fired up," "pure human connection," "steal ideas," "blows my mind"
-- No emphasis or bold text
-- No explanatory text or labels before or after the rewrite
-- Avoid AI-like patterns:
-  - Don't use overly perfect or formulaic structures
-  - Don't repeat the same sentence patterns
-  - Don't use overly enthusiastic or robotic language
-  - Don't include unnecessary qualifiers or hedges
-  - Don't use overly formal or stilted language
-  - Don't include redundant phrases or obvious statements
-  - Don't cram too much information
-  - Don't over-explain or state the obvious
-  - Don't jump between unrelated points
-  - Don't use forced transitions
+IMPORTANT - Your rewrite MUST incorporate these specific improvements:
+${recommendations.length > 0 ? recommendations.map((rec: string) => `- ${rec}`).join('\n') : '- Make the post more authentic and engaging'}
 
 Tone Guidelines:
 - Human + Relatable: Warm, conversational, authentic, like a professional colleague sharing an insight
 - Bold + Edgy: Confident, direct, with a modern professional edge but not abrasive
 - Playful + Witty: Light-hearted, clever, with subtle humor that remains professional
 
-Post: ${post}
+Rewrite Requirements:
+1. The rewrite MUST implement ALL the improvements listed above
+2. Keep the message complete and coherent within ${maxLength} characters
+3. Maintain the core message while implementing the tone and improvements
+4. Ensure the rewrite feels natural and not forced
+5. Focus on making the content more engaging and authentic
+6. IMPORTANT: Your response should be a complete, well-developed post that fully expresses the message
+7. If the original post is short, expand it naturally while maintaining authenticity
+8. If the original post is long, focus on the most important points while keeping it complete
+9. CRITICAL: The response MUST be at least ${Math.ceil(maxLength * 0.2)} characters long to ensure a complete message
 
-IMPORTANT: 
-1. Respond with ONLY the rewritten post text
-2. The rewritten post MUST be a complete message within ${maxLength} characters
-3. Do not truncate or cut off text - ensure the message is complete and coherent
-4. Adjust the intensity of tone changes based on the intensity parameter (${intensity})
-5. Focus on telling a natural story that flows well, rather than just reformatting the original text
-6. Aim to use 90-100% of the available ${maxLength} characters while maintaining quality`
+Post: ${post}`
 
   try {
     const result = await model.generateContent(prompt)
     const response = await result.response
     const text: string = response.text().trim()
     
-    // Ensure the response is within the maxLength
-    if (text.length > maxLength) {
-      // Instead of truncating, try to get a complete rewrite
-      return await rewritePost(post, tone, intensity, maxLength)
+    // More lenient length requirements - only retry if extremely off
+    if (text.length > maxLength * 1.5) {
+      console.log(`Generated text too long (${text.length} > ${maxLength * 1.5}), retrying...`)
+      return await rewritePost(post, tone, intensity, maxLength, retryCount + 1)
     }
     
-    // If the text is too short (less than 70% of maxLength), try to get a better rewrite
-    if (text.length < maxLength * 0.7) {
-      return await rewritePost(post, tone, intensity, maxLength)
+    // Much more lenient minimum length requirement with a hard floor
+    const minLength = Math.max(Math.ceil(maxLength * 0.2), 180)
+    if (text.length < minLength) {
+      console.log(`Generated text too short (${text.length} < ${minLength}), retrying...`)
+      return await rewritePost(post, tone, intensity, maxLength, retryCount + 1)
     }
     
     return text
   } catch (error) {
+    if (retryCount < 2) {
+      console.log(`Error generating rewrite, retrying (attempt ${retryCount + 1})...`)
+      return await rewritePost(post, tone, intensity, maxLength, retryCount + 1)
+    }
     console.error("Error rewriting post:", error)
     throw new Error("Failed to rewrite post")
   }
