@@ -5,7 +5,7 @@
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_VERSION = "18.17.0"
-  PNPM_VERSION = "8"
+  PNPM_VERSION = "10.10.0"
   NPM_FLAGS = "--legacy-peer-deps"
   NEXT_SHARP_PATH = "/opt/buildhome/.npm-global/bin/sharp"
   NODE_OPTIONS = "--max-old-space-size=4096"
