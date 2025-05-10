@@ -32,23 +32,28 @@ export function HistorySection() {
     hasMore: false
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
   const fetchRewrites = async (page: number = 1) => {
     try {
       setLoading(true)
+      setError(null)
       const response = await fetch(`/api/history?page=${page}&limit=${pagination.limit}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch rewrites")
-      }
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch rewrites")
+      }
+
       setRewrites(data.rewrites)
       setPagination(data.pagination)
     } catch (error) {
       console.error("Error fetching rewrites:", error)
+      setError(error instanceof Error ? error.message : "Failed to load rewrite history")
       toast({
         title: "Error",
-        description: "Failed to load rewrite history",
+        description: error instanceof Error ? error.message : "Failed to load rewrite history",
         variant: "destructive"
       })
     } finally {
@@ -87,11 +92,12 @@ export function HistorySection() {
         body: JSON.stringify({ id }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to delete rewrite")
+        throw new Error(data.message || "Failed to delete rewrite")
       }
 
-      // Remove the deleted rewrite from the state
       setRewrites(rewrites.filter(rewrite => rewrite.id !== id))
       toast({
         title: "Success",
@@ -101,7 +107,7 @@ export function HistorySection() {
       console.error("Error deleting rewrite:", error)
       toast({
         title: "Error",
-        description: "Failed to delete rewrite",
+        description: error instanceof Error ? error.message : "Failed to delete rewrite",
         variant: "destructive"
       })
     }
@@ -123,6 +129,8 @@ export function HistorySection() {
       <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
         {loading && rewrites.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-4">Loading...</div>
+        ) : error ? (
+          <div className="text-center text-sm text-red-500 py-4">{error}</div>
         ) : rewrites.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-4">No rewrites yet</div>
         ) : (

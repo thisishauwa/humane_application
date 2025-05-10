@@ -9,6 +9,7 @@
   NPM_FLAGS = "--legacy-peer-deps"
   NEXT_SHARP_PATH = "/opt/buildhome/.npm-global/bin/sharp"
   NODE_OPTIONS = "--max-old-space-size=4096"
+  NEXT_PUBLIC_APP_URL = "https://humane-application.netlify.app"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

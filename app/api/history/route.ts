@@ -6,11 +6,13 @@ export async function GET(req: Request) {
   try {
     const cookieStore = cookies()
     const supabase = await createClient(cookieStore)
+    
+    // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-
     if (authError || !user) {
+      console.error("Auth error:", authError)
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", message: "Please sign in to access your history" },
         { status: 401 }
       )
     }
@@ -21,7 +23,7 @@ export async function GET(req: Request) {
     const limit = parseInt(url.searchParams.get("limit") || "10")
     const offset = (page - 1) * limit
 
-    // Fetch rewrites
+    // Fetch rewrites with error handling
     const { data: rewrites, error: rewritesError } = await supabase
       .from("rewrites")
       .select("*")
@@ -32,7 +34,7 @@ export async function GET(req: Request) {
     if (rewritesError) {
       console.error("Error fetching rewrites:", rewritesError)
       return NextResponse.json(
-        { error: "Failed to fetch rewrites" },
+        { error: "Database error", message: "Failed to fetch your rewrite history" },
         { status: 500 }
       )
     }
@@ -46,13 +48,13 @@ export async function GET(req: Request) {
     if (countError) {
       console.error("Error getting count:", countError)
       return NextResponse.json(
-        { error: "Failed to get total count" },
+        { error: "Database error", message: "Failed to get total count" },
         { status: 500 }
       )
     }
 
     return NextResponse.json({
-      rewrites,
+      rewrites: rewrites || [],
       pagination: {
         total: count || 0,
         page,
@@ -63,7 +65,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("Error in history route:", error)
     return NextResponse.json(
-      { error: "Failed to fetch history" },
+      { error: "Server error", message: "An unexpected error occurred" },
       { status: 500 }
     )
   }
@@ -73,20 +75,21 @@ export async function DELETE(req: Request) {
   try {
     const cookieStore = cookies()
     const supabase = await createClient(cookieStore)
+    
+    // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-
     if (authError || !user) {
+      console.error("Auth error:", authError)
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", message: "Please sign in to delete rewrites" },
         { status: 401 }
       )
     }
 
     const { id } = await req.json()
-
     if (!id) {
       return NextResponse.json(
-        { error: "Missing rewrite ID" },
+        { error: "Bad request", message: "Missing rewrite ID" },
         { status: 400 }
       )
     }
@@ -95,21 +98,24 @@ export async function DELETE(req: Request) {
       .from("rewrites")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id) // Ensure user can only delete their own rewrites
+      .eq("user_id", user.id)
 
     if (deleteError) {
       console.error("Error deleting rewrite:", deleteError)
       return NextResponse.json(
-        { error: "Failed to delete rewrite" },
+        { error: "Database error", message: "Failed to delete rewrite" },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      message: "Rewrite deleted successfully"
+    })
   } catch (error) {
     console.error("Error in delete route:", error)
     return NextResponse.json(
-      { error: "Failed to delete rewrite" },
+      { error: "Server error", message: "An unexpected error occurred" },
       { status: 500 }
     )
   }
