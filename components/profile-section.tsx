@@ -4,36 +4,106 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Settings, LogOut, Edit } from "lucide-react"
-import { useState } from "react"
+import { LogOut, Edit } from "lucide-react"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { useToast } from "@/components/ui/use-toast"
 
 export function ProfileSection({
-  onSettingsClick,
   onLogoutClick,
 }: {
-  onSettingsClick: () => void
   onLogoutClick: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [name, setName] = useState("John Doe")
-  const [email, setEmail] = useState("john.doe@example.com")
-  const [company, setCompany] = useState("Acme Corp")
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [company, setCompany] = useState("")
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleSave = () => {
-    // In a real app, this would save to the backend
-    setIsEditing(false)
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+
+      if (profile) {
+        setName(profile.full_name || '')
+        setEmail(profile.email || '')
+        setCompany(profile.company || '')
+      }
+    } catch (error: any) {
+      console.error('Error fetching profile:', error)
+      toast({
+        title: "Error loading profile",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: name,
+          company: company,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      })
+      setIsEditing(false)
+    } catch (error: any) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: "Error updating profile",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="text-sm text-muted-foreground">Loading profile...</div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center space-y-2">
         <Avatar className="h-20 w-20">
-          <AvatarImage src="/placeholder.svg?height=80&width=80" alt="User" />
-          <AvatarFallback>JD</AvatarFallback>
+          <AvatarImage src="/placeholder.svg?height=80&width=80" alt={name || 'User'} />
+          <AvatarFallback>{name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}</AvatarFallback>
         </Avatar>
         <div className="text-center">
-          <h3 className="text-base font-medium">{name}</h3>
-          <p className="text-sm text-muted-foreground">{email}</p>
+          <h3 className="text-base font-medium">{name || 'No name set'}</h3>
+          <p className="text-sm text-muted-foreground">{email || 'No email set'}</p>
         </div>
       </div>
 
@@ -47,7 +117,7 @@ export function ProfileSection({
           </div>
           <div className="space-y-1">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="email" value={email} disabled />
           </div>
           <div className="space-y-1">
             <Label htmlFor="company">Company</Label>
@@ -85,7 +155,7 @@ export function ProfileSection({
 
           <div className="space-y-1">
             <p className="text-sm font-medium">Company</p>
-            <p className="text-sm">{company}</p>
+            <p className="text-sm">{company || 'Not set'}</p>
           </div>
 
           <div className="space-y-1">
@@ -96,13 +166,6 @@ export function ProfileSection({
       )}
 
       <div className="flex flex-col space-y-2 pt-4">
-        <button
-          className="w-full px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200 flex items-center justify-center"
-          onClick={onSettingsClick}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Account Settings
-        </button>
         <button
           className="w-full px-4 py-2 rounded-full bg-gradient-to-b from-red-400 to-red-500 text-white focus:ring-2 focus:ring-red-300 hover:shadow-lg transition duration-200 flex items-center justify-center"
           onClick={onLogoutClick}

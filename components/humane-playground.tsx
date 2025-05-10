@@ -15,6 +15,7 @@ import { HistorySection } from "@/components/history-section"
 import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase"
 
 export function HumanePlayground() {
   const router = useRouter()
@@ -151,10 +152,23 @@ export function HumanePlayground() {
     a.click()
   }
 
-  const handleLogout = () => {
-    // In a real app, this would clear auth tokens, etc.
-    console.log("Logging out...")
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      })
+      router.push("/")
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
   }
 
   const getScoreColor = (score: number) => {
@@ -409,20 +423,7 @@ export function HumanePlayground() {
             ← Back
           </button>
           <Card className="rounded-lg border p-6">
-            <ProfileSection onSettingsClick={() => setActiveSection("settings")} onLogoutClick={handleLogout} />
-          </Card>
-        </div>
-      )}
-      {activeSection === "settings" && (
-        <div className="mx-auto max-w-md">
-          <button
-            className="mb-4 px-4 py-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
-            onClick={() => setActiveSection("profile")}
-          >
-            ← Back to Profile
-          </button>
-          <Card className="rounded-lg border p-6">
-            <AccountSettings onSave={() => setActiveSection("profile")} />
+            <ProfileSection onLogoutClick={handleLogout} />
           </Card>
         </div>
       )}
@@ -442,105 +443,6 @@ export function HumanePlayground() {
 
       {/* Multi-step loader */}
       <MultiStepLoader loadingStates={loadingStates} loading={loading} duration={1000} />
-    </div>
-  )
-}
-
-function AccountSettings({ onSave }: { onSave: () => void }) {
-  const [name, setName] = useState("John Doe")
-  const [email, setEmail] = useState("john.doe@example.com")
-  const [company, setCompany] = useState("Acme Corp")
-  const [notifications, setNotifications] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold mb-4">Account Settings</h2>
-        <p className="text-sm text-muted-foreground">Manage your account preferences and settings</p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="name" className="text-sm font-medium">
-            Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="company" className="text-sm font-medium">
-            Company
-          </label>
-          <input
-            id="company"
-            type="text"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label htmlFor="notifications" className="text-sm font-medium">
-            Email Notifications
-          </label>
-          <input
-            id="notifications"
-            type="checkbox"
-            checked={notifications}
-            onChange={(e) => setNotifications(e.target.checked)}
-            className="h-4 w-4"
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label htmlFor="darkMode" className="text-sm font-medium">
-            Dark Mode
-          </label>
-          <input
-            id="darkMode"
-            type="checkbox"
-            checked={darkMode}
-            onChange={(e) => setDarkMode(e.target.checked)}
-            className="h-4 w-4"
-          />
-        </div>
-      </div>
-
-      <div className="pt-4 flex justify-end space-x-2">
-        <button
-          className="px-4 py-2 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 transition duration-200"
-          onClick={onSave}
-        >
-          Cancel
-        </button>
-        <button
-          className="px-8 py-2 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
-          onClick={onSave}
-        >
-          Save Changes
-        </button>
-      </div>
     </div>
   )
 }
