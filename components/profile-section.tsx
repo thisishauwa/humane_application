@@ -1,6 +1,5 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -97,10 +96,6 @@ export function ProfileSection({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center space-y-2">
-        <Avatar className="h-20 w-20">
-          <AvatarImage src="/placeholder.svg?height=80&width=80" alt={name || 'User'} />
-          <AvatarFallback>{name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}</AvatarFallback>
-        </Avatar>
         <div className="text-center">
           <h3 className="text-base font-medium">{name || 'No name set'}</h3>
           <p className="text-sm text-muted-foreground">{email || 'No email set'}</p>

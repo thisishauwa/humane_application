@@ -83,8 +83,10 @@ For each rewrite:
 - Remember: shorter, more concise posts perform better on LinkedIn
 - Cut unnecessary words and get straight to the point
 - If the original is too long, make it significantly shorter while keeping the key message
-- Your goal is to reduce the cringe score by at least 30 points (from ${analysisJson.score} to ${Math.max(0, analysisJson.score - 30)} or lower). This is a hard requirement.
+- Your goal is to reduce the cringe score by at least 30 points (from ${analysisJson.score} to ${Math.max(0, analysisJson.score - 30)} or lower)
 - Focus on eliminating the specific cringe factors identified in the analysis
+- IMPORTANT: Each rewrite MUST address ALL of these specific improvements:
+${analysisJson.improvements.map((imp: string) => `  - ${imp}`).join('\\n')}
 
 Return a JSON response with:
 {

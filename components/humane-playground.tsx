@@ -259,11 +259,6 @@ export function HumanePlayground() {
             </div>
 
             <div className="rounded-lg border p-4">
-              <h3 className="mb-2 text-sm font-medium">Highlighted Issues</h3>
-              <div className="rounded-md bg-muted/50 p-3 text-sm" dangerouslySetInnerHTML={{ __html: highlighted }} />
-            </div>
-
-            <div className="rounded-lg border p-4">
               <h3 className="mb-2 text-sm font-medium">Recommendations</h3>
               <ul className="list-disc pl-5 text-sm">
                 {recommendations.map((rec, i) => (
@@ -276,7 +271,7 @@ export function HumanePlayground() {
               <div className="rounded-lg border p-4">
                 <h3 className="mb-2 text-sm font-medium">Rewrite Options</h3>
                 <Tabs defaultValue={rewrites[0].tone}>
-                  <TabsList className="w-full flex px-0.5 pb-[5px] m-0 gap-0 rounded-lg border border-gray-200 bg-gray-100 overflow-hidden">
+                  <TabsList className="w-full flex px-0.5 pb-[5px] m-0 gap-0 rounded-lg border bg-gray-100 overflow-hidden">
                     {rewrites.map((rewrite, idx) => {
                       const isFirst = idx === 0;
                       const isLast = idx === rewrites.length - 1;
