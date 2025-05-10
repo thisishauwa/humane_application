@@ -1,0 +1,19 @@
+[build]
+  command = "rm -rf .next node_modules && pnpm install --frozen-lockfile && pnpm build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "1"
+  NODE_VERSION = "18.17.0"
+  PNPM_VERSION = "8"
+  NPM_FLAGS = "--legacy-peer-deps"
+  NEXT_SHARP_PATH = "/opt/buildhome/.npm-global/bin/sharp"
+  NODE_OPTIONS = "--max-old-space-size=4096"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
