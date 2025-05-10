@@ -12,6 +12,7 @@ import { Eye, EyeOff } from "lucide-react"
 import AnimatedTooltipPreview from "@/components/ui/animated-tooltip-demo"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase"
+import Link from "next/link"
 
 export function LandingPage() {
   const [showSignup, setShowSignup] = useState(false)
@@ -76,10 +77,10 @@ export function LandingPage() {
 function Navbar({ onSignupClick, onLoginClick }: { onSignupClick: () => void; onLoginClick: () => void }) {
   return (
     <nav className="flex w-full items-center justify-between border-t border-b border-neutral-200 px-4 py-4 dark:border-neutral-800">
-      <div className="flex items-center gap-2">
+      <Link href="/" className="flex items-center gap-2">
         <div className="size-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-500" />
         <h1 className="text-base font-bold md:text-2xl">Humane</h1>
-      </div>
+      </Link>
       <div className="flex items-center gap-2">
         <button
           className="px-4 py-2 text-sm font-medium text-black transition-colors hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
@@ -171,7 +172,7 @@ function HeroContent({ onSignupClick }: { onSignupClick: () => void }) {
       >
         <div className="w-full overflow-hidden rounded-xl border border-gray-300 dark:border-gray-700">
           <img
-            src="/placeholder.svg?height=500&width=1000"
+            src="/heroimg.png"
             alt="Humane app preview"
             className="aspect-[16/9] h-auto w-full object-cover"
             height={500}

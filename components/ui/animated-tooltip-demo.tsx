@@ -7,13 +7,13 @@ const people = [
     id: 1,
     name: "Hauwa Suleiman",
     designation: "Design Engineer",
-    image: "/placeholder.svg?height=64&width=64",
+    image: "/hauwa.png",
   },
   {
     id: 2,
     name: "Cursor AI",
     designation: "Trusty Assistant",
-    image: "/placeholder.svg?height=64&width=64",
+    image: "/cdnlogo.com_cursor.svg",
   },
 ];
 
