@@ -96,29 +96,43 @@ export function HumanePlayground() {
       // Then, generate rewrites with different tones
       const tones = ["Human + Relatable", "Bold + Edgy", "Playful + Witty"]
       const newRewrites = []
+      const maxRetries = 3
 
       for (const tone of tones) {
-        try {
-          const rewriteResponse = await fetch("/api/rewrite", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ 
-              post, 
-              tone, 
-              intensity,
-              maxLength 
-            }),
-          })
+        let retryCount = 0
+        let success = false
 
-          if (rewriteResponse.ok) {
-            const rewriteData = await rewriteResponse.json()
-            newRewrites.push({ tone, text: rewriteData.rewrittenPost })
+        while (retryCount < maxRetries && !success) {
+          try {
+            const rewriteResponse = await fetch("/api/rewrite", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ 
+                post, 
+                tone, 
+                intensity,
+                maxLength 
+              }),
+            })
+
+            if (rewriteResponse.ok) {
+              const rewriteData = await rewriteResponse.json()
+              newRewrites.push({ tone, text: rewriteData.rewrittenPost })
+              success = true
+            } else {
+              throw new Error(`Failed to generate rewrite for tone ${tone}`)
+            }
+          } catch (err) {
+            console.error(`Failed to generate rewrite for tone ${tone} (attempt ${retryCount + 1}):`, err)
+            retryCount++
+            if (retryCount === maxRetries) {
+              console.error(`Failed to generate rewrite for tone ${tone} after ${maxRetries} attempts`)
+            }
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000))
           }
-        } catch (err) {
-          console.error(`Failed to generate rewrite for tone ${tone}:`, err)
-          // Continue with other tones even if one fails
         }
       }
 
