@@ -233,6 +233,15 @@ export function HumanePlayground() {
             <div className="text-sm text-muted-foreground mt-2">
               {post.length} characters
             </div>
+            <div className="block sm:hidden mt-4">
+              <button
+                className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+                onClick={handleAnalyze}
+                disabled={loading || !post.trim()}
+              >
+                {loading ? "Analyzing..." : "Analyze & Rewrite"}
+              </button>
+            </div>
           </div>
         </Card>
 
@@ -362,14 +371,16 @@ export function HumanePlayground() {
                   <li>Copy or download your improved post</li>
                 </ol>
               </div>
-
-              <button
-                className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
-                onClick={handleAnalyze}
-                disabled={loading || !post.trim()}
-              >
-                {loading ? "Analyzing..." : "Analyze & Rewrite"}
-              </button>
+              {/* On desktop, show Analyze & Rewrite button here */}
+              <div className="hidden sm:block">
+                <button
+                  className="w-full px-8 py-4 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+                  onClick={handleAnalyze}
+                  disabled={loading || !post.trim()}
+                >
+                  {loading ? "Analyzing..." : "Analyze & Rewrite"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -397,19 +408,6 @@ export function HumanePlayground() {
       <div className="mb-6 flex items-center justify-between border-b pb-4">
         <h1 className="text-xl font-bold">{getGreeting()}, {fullName || "there"}</h1>
         <div className="flex items-center gap-2">
-          <Select
-            defaultValue="linkedin"
-            onValueChange={(value) => setContentType(value as "linkedin" | "twitter" | "email")}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select content type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="linkedin">LinkedIn Post</SelectItem>
-              <SelectItem value="twitter">Twitter Post</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-            </SelectContent>
-          </Select>
           <button
             className="p-2 rounded-full bg-gradient-to-b from-blue-400 to-blue-500 text-white focus:ring-2 focus:ring-blue-300 hover:shadow-lg transition duration-200"
             onClick={() => setActiveSection("profile")}
