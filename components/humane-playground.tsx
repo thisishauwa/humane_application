@@ -28,13 +28,14 @@ export function HumanePlayground() {
   const [rewrites, setRewrites] = useState<{ tone: string; text: string }[]>([])
   const [selectedRewrite, setSelectedRewrite] = useState("")
   const [intensity, setIntensity] = useState(5)
-  const [maxLength, setMaxLength] = useState(256)
+  const [maxLength, setMaxLength] = useState(500)
   const [activeMode, setActiveMode] = useState<"instructions" | "history">("instructions")
   const [activeSection, setActiveSection] = useState<"main" | "profile" | "billing" | "settings">("main")
   const [contentType, setContentType] = useState<"linkedin" | "twitter" | "email">("linkedin")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [historyKey, setHistoryKey] = useState(0)
 
   const loadingStates = [
     { text: "Scanning for corporate jargon" },
@@ -124,6 +125,7 @@ export function HumanePlayground() {
       if (newRewrites.length > 0) {
         setRewrites(newRewrites)
         setSelectedRewrite(newRewrites[0].text)
+        setHistoryKey(prev => prev + 1)
       } else {
         setError("Failed to generate any rewrites")
       }
@@ -232,12 +234,12 @@ export function HumanePlayground() {
             {rewrites.length > 0 && (
               <div className="rounded-lg border p-4">
                 <h3 className="mb-2 text-sm font-medium">Rewrite Options</h3>
-                <Tabs defaultValue={rewrites[0].tone.toLowerCase().replace(/\s+/g, "-")}>
+                <Tabs defaultValue={rewrites[0].tone}>
                   <TabsList className="w-full">
                     {rewrites.map((rewrite) => (
                       <TabsTrigger
                         key={rewrite.tone}
-                        value={rewrite.tone.toLowerCase().replace(/\s+/g, "-")}
+                        value={rewrite.tone}
                         onClick={() => setSelectedRewrite(rewrite.text)}
                       >
                         {rewrite.tone}
@@ -245,7 +247,7 @@ export function HumanePlayground() {
                     ))}
                   </TabsList>
                   {rewrites.map((rewrite) => (
-                    <TabsContent key={rewrite.tone} value={rewrite.tone.toLowerCase().replace(/\s+/g, "-")}>
+                    <TabsContent key={rewrite.tone} value={rewrite.tone}>
                       <div className="mt-2 rounded-md bg-muted/50 p-4 text-sm">{rewrite.text}</div>
                     </TabsContent>
                   ))}
@@ -327,7 +329,7 @@ export function HumanePlayground() {
                 <Slider
                   value={[maxLength]}
                   min={100}
-                  max={1500}
+                  max={500}
                   step={1}
                   onValueChange={(value) => setMaxLength(value[0])}
                 />
@@ -361,7 +363,7 @@ export function HumanePlayground() {
             </div>
           )}
 
-          {activeMode === "history" && <HistorySection />}
+          {activeMode === "history" && <HistorySection key={historyKey} />}
         </div>
 
         <div className="rounded-lg border p-4">
