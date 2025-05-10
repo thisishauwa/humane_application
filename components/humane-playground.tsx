@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
@@ -34,6 +34,7 @@ export function HumanePlayground() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [historyKey, setHistoryKey] = useState(0)
+  const [fullName, setFullName] = useState<string | null>(null)
 
   const loadingStates = [
     { text: "Scanning for corporate jargon" },
@@ -195,6 +196,27 @@ export function HumanePlayground() {
     if (score <= 50) return "Slightly Corporate"
     if (score <= 80) return "Very Corporate"
     return "Maximum Cringe"
+  }
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      setFullName(profile?.full_name || null);
+    };
+    fetchProfile();
+  }, []);
+
+  function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   }
 
   const renderMainContent = () => (
@@ -373,7 +395,7 @@ export function HumanePlayground() {
   return (
     <div className="mx-auto w-full max-w-[1400px] p-4">
       <div className="mb-6 flex items-center justify-between border-b pb-4">
-        <h1 className="text-xl font-bold">Humane</h1>
+        <h1 className="text-xl font-bold">{getGreeting()}, {fullName || "there"}</h1>
         <div className="flex items-center gap-2">
           <Select
             defaultValue="linkedin"
